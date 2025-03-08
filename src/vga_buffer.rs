@@ -1,7 +1,8 @@
 // in src/vga_buffer.rs
 use core::fmt;
-
+use lazy_static::lazy_static;
 use volatile::Volatile;
+use spin::Mutex;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,7 +61,15 @@ pub struct Writer {
     color_code: ColorCode,
     buffer: &'static mut Buffer,
 }
-// in src/vga_buffer.rs
+
+lazy_static! {
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
+        column_position: 0,
+        color_code: ColorCode::new(Color::Yellow, Color::Black),
+        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
+    });
+}
+
 
 impl Writer {
     pub fn write_byte(&mut self, byte: u8) {
@@ -94,7 +103,26 @@ impl Writer {
         }
     }
 
-    fn new_line(&mut self) {/* TODO */}
+    fn new_line(&mut self) {
+        for row in 1..BUFFER_HEIGHT {
+            for col in 0..BUFFER_WIDTH {
+                let character = self.buffer.chars[row][col].read();
+                self.buffer.chars[row - 1][col].write(character);
+            }
+        }
+        self.clear_row(BUFFER_HEIGHT - 1);
+        self.column_position = 0;
+    }
+
+    fn clear_row(&mut self, row: usize) {
+        let blank = ScreenChar {
+            ascii_character: b' ',
+            color_code: self.color_code,
+        };
+        for col in 0..BUFFER_WIDTH {
+            self.buffer.chars[row][col].write(blank);
+        }
+    }
 }
 
 impl fmt::Write for Writer {
