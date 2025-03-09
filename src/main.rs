@@ -2,11 +2,12 @@
 #![no_main]
 
 #![feature(custom_test_frameworks)]
-#![test_runner(crate::test_runner)]
+#![test_runner(blog_os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
+use blog_os::println;
 use core::panic::PanicInfo;
 mod serial;
-mod vga_buffer;
+
 pub trait Testable {
     fn run(&self) -> ();
 }
@@ -38,37 +39,43 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 
-
-
+/// Panic handler for both test and non-test scenarios
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    serial_println!("[failed]\n");
-    serial_println!("Error: {}\n", info);
-    exit_qemu(QemuExitCode::Failed);
-    loop {}
+    // Custom panic handler based on whether it's a test or not
+    #[cfg(test)]
+    {
+        blog_os::test_panic_handler(info);
+    }
+
+    #[cfg(not(test))]
+    {
+        println!("{}", info);
+        loop {}
+    }
 }
-//static HELLO: &[u8] = b"Hello World!";
-/// This is the entry point of the kernel, called by the bootloader.
+
+/// Entry point of the kernel, called by the bootloader
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     println!("Hello World{}", "!");
     #[cfg(test)]
     test_main();
-    #[deny(clippy::empty_enum)]
 
     loop {}
 }
+
 #[cfg(test)]
-pub fn test_runner(tests: &[&dyn Testable]) { // new
+pub fn test_runner(tests: &[&dyn Testable]) {
     serial_println!("Running {} tests", tests.len());
     for test in tests {
-        test.run(); // new
+        test.run();
     }
     exit_qemu(QemuExitCode::Success);
 }
+
+/// A simple test case
 #[test_case]
 fn trivial_assertion() {
-    // serial_println!("trivial assertion... ");
     assert_eq!(1, 1);
-    // serial_println!("[ok]");
 }
