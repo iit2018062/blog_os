@@ -4,9 +4,9 @@
 #![feature(custom_test_frameworks)]
 #![test_runner(blog_os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
-use blog_os::{gdt, init, println};
-use core::panic::PanicInfo;
+use blog_os::{println};
 mod serial;
+use core::panic::PanicInfo;  // Only needed outside of tests
 
 pub trait Testable {
     fn run(&self) -> ();
@@ -39,22 +39,6 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 
-/// Panic handler for both test and non-test scenarios
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    // Custom panic handler based on whether it's a test or not
-    #[cfg(test)]
-    {
-        blog_os::test_panic_handler(info);
-    }
-
-    #[cfg(not(test))]
-    {
-        println!("{}", info);
-        loop {}
-    }
-}
-
 /// Entry point of the kernel, called by the bootloader
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
@@ -64,22 +48,17 @@ pub extern "C" fn _start() -> ! {
 
     // invoke a breakpoint exception
     //x86_64::instructions::interrupts::int3(); // new
-    fn stack_overflow() {
-        stack_overflow(); // for each recursion, the return address is pushed
-    }
+    // fn stack_overflow() {
+    //     stack_overflow(); // for each recursion, the return address is pushed
+    // }
     //stack_overflow();
-
 
     // as before
     #[cfg(test)]
     test_main();
 
     println!("It did not crash!");
-    loop {
-        use blog_os::print;
-        print!("-");
-        for _ in 0..10000{}// new
-    }
+    blog_os::hlt_loop();
 }
 
 #[cfg(test)]
@@ -95,4 +74,19 @@ pub fn test_runner(tests: &[&dyn Testable]) {
 #[test_case]
 fn trivial_assertion() {
     assert_eq!(1, 1);
+}
+
+#[cfg(not(test))]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    println!("{}", info);
+    blog_os::hlt_loop();            // new
+}
+
+#[cfg(test)]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    serial_println!("PANIC in test: {}\n", info);
+    exit_qemu(QemuExitCode::Failed);  // Exit with failure code
+    loop {}  // This ensures the function never returns
 }
