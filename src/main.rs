@@ -4,7 +4,7 @@
 #![feature(custom_test_frameworks)]
 #![test_runner(blog_os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
-use blog_os::println;
+use blog_os::{gdt, init, println};
 use core::panic::PanicInfo;
 mod serial;
 
@@ -63,7 +63,12 @@ pub extern "C" fn _start() -> ! {
     blog_os::init(); // new
 
     // invoke a breakpoint exception
-    x86_64::instructions::interrupts::int3(); // new
+    //x86_64::instructions::interrupts::int3(); // new
+    fn stack_overflow() {
+        stack_overflow(); // for each recursion, the return address is pushed
+    }
+    //stack_overflow();
+
 
     // as before
     #[cfg(test)]

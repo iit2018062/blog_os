@@ -12,7 +12,7 @@ pub mod serial;
 pub mod vga_buffer;
 use core::panic::PanicInfo;
 pub mod interrupts;
-
+pub mod gdt;
 // in src/interrupts.rs
 
 use x86_64::structures::idt::InterruptDescriptorTable;
@@ -82,5 +82,6 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 pub fn init() {
+    gdt::init();
     interrupts::init_idt();
 }
