@@ -6,8 +6,8 @@
 #![reexport_test_harness_main = "test_main"]
 use blog_os::{println};
 mod serial;
-use core::panic::PanicInfo;  // Only needed outside of tests
-
+use core::panic::PanicInfo;
+use bootloader::{BootInfo, entry_point};// Only needed outside of tests
 pub trait Testable {
     fn run(&self) -> ();
 }
@@ -40,31 +40,41 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 }
 
 /// Entry point of the kernel, called by the bootloader
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
+entry_point!(kernel_main);
+fn kernel_main(boot_info: &'static BootInfo) -> ! {
+    use x86_64::VirtAddr;
+    use blog_os::memory::translate_addr;
+
     println!("Hello World{}", "!");
+    blog_os::init();
 
-    blog_os::init(); // new
+    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
 
-    // invoke a breakpoint exception
-    //x86_64::instructions::interrupts::int3(); // new
-    // fn stack_overflow() {
-    //     stack_overflow(); // for each recursion, the return address is pushed
-    // }
-    //stack_overflow();
+    let addresses = [
+        // the identity-mapped vga buffer page
+        0xb8000,
+        // some code page
+        0x201008,
+        // some stack page
+        0x0100_0020_1a10,
+        // virtual address mapped to physical address 0
+        boot_info.physical_memory_offset,
+    ];
+
+    for &address in &addresses {
+        let virt = VirtAddr::new(address);
+        let phys = unsafe { translate_addr(virt, phys_mem_offset) };
+        println!("{:?} -> {:?}", virt, phys);
+    }
 
     // as before
-    use x86_64::registers::control::Cr3;
-
-    let (level_4_page_table, _) = Cr3::read();
-    println!("Level 4 page table at: {:?}", level_4_page_table.start_address());
-
     #[cfg(test)]
     test_main();
 
     println!("It did not crash!");
     blog_os::hlt_loop();
 }
+
 
 #[cfg(test)]
 pub fn test_runner(tests: &[&dyn Testable]) {

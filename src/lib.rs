@@ -8,11 +8,14 @@
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 #![feature(abi_x86_interrupt)]
+#[cfg(test)]
+use bootloader::{entry_point, BootInfo};
 pub mod serial;
 pub mod vga_buffer;
 use core::panic::PanicInfo;
 pub mod interrupts;
 pub mod gdt;
+pub mod memory;
 // in src/interrupts.rs
 
 use x86_64::structures::idt::InterruptDescriptorTable;
@@ -51,10 +54,12 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
     hlt_loop();         // new
 }
 
+#[cfg(test)]
+entry_point!(test_kernel_main);
+
 /// Entry point for `cargo test`
 #[cfg(test)]
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
+fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
     init();
     test_main();
     hlt_loop();         // new
