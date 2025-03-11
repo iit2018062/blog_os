@@ -10,6 +10,7 @@ mod serial;
 use core::panic::PanicInfo;
 use bootloader::{BootInfo, entry_point};
 // Only needed outside of tests
+use blog_os::task::keyboard;
 use blog_os::task::{Task, simple_executor::SimpleExecutor};
 extern crate alloc;
 use alloc::{boxed::Box, vec, vec::Vec, rc::Rc};
@@ -108,6 +109,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     let mut executor = SimpleExecutor::new();
     executor.spawn(Task::new(example_task()));
+    executor.spawn(Task::new(keyboard::print_keypresses()));
     executor.run();
     println!("It did not crash!");
     blog_os::hlt_loop();

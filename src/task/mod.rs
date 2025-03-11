@@ -3,6 +3,7 @@ use alloc::boxed::Box;
 use core::task::{Context, Poll};
 pub mod simple_executor;
 extern crate alloc;
+pub mod keyboard;
 
 impl Task {
     fn poll(&mut self, context: &mut Context) -> Poll<()> {
