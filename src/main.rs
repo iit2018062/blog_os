@@ -45,13 +45,17 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     use x86_64::{structures::paging::Page, VirtAddr};
     use blog_os::memory;
     use blog_os::memory::translate_addr;
+    use blog_os::memory::BootInfoFrameAllocator;
 
     println!("Hello World{}", "!");
     blog_os::init();
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
-    let mut frame_allocator = memory::EmptyFrameAllocator;
+    //let mut frame_allocator = memory::EmptyFrameAllocator;
+    let mut frame_allocator = unsafe {
+        BootInfoFrameAllocator::init(&boot_info.memory_map)
+    };
 
     // map an unused page
     let page = Page::containing_address(VirtAddr::new(0));
