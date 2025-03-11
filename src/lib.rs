@@ -8,23 +8,24 @@
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 #![feature(abi_x86_interrupt)]
+#![feature(const_mut_refs)]
 #[cfg(test)]
 extern crate alloc;
 use bootloader::{entry_point, BootInfo};
 pub mod serial;
+
 pub mod vga_buffer;
 use core::panic::PanicInfo;
 pub mod interrupts;
 pub mod gdt;
 pub mod memory;
-// in src/interrupts.rs
 pub mod allocator;
 
 use x86_64::structures::idt::InterruptDescriptorTable;
 
-pub fn init_idt() {
-    let mut idt = InterruptDescriptorTable::new();
-}
+// pub fn init_idt() {
+//     let mut idt = InterruptDescriptorTable::new();
+// }
 
 pub trait Testable {
     fn run(&self) -> ();
