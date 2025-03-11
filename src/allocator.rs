@@ -9,10 +9,16 @@ use bump::BumpAllocator;
 pub struct Dummy;
 use linked_list_allocator::LockedHeap;
 use linked_list::LinkedListAllocator;
+pub mod fixed_size_block;
+use fixed_size_block::FixedSizeBlockAllocator;
 
 #[global_allocator]
-static ALLOCATOR: Locked<LinkedListAllocator> =
-    Locked::new(LinkedListAllocator::new());
+static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(
+    FixedSizeBlockAllocator::new());
+
+// #[global_allocator]
+// static ALLOCATOR: Locked<LinkedListAllocator> =
+//     Locked::new(LinkedListAllocator::new());
 // #[global_allocator]
 // static ALLOCATOR: Locked<BumpAllocator> = Locked::new(BumpAllocator::new());
 
@@ -55,7 +61,8 @@ pub fn init_heap(
     }
 
     unsafe {
-        ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
+        ALLOCATOR.lock().init(HEAP_START as *mut u8, HEAP_SIZE);
+
 
     }
 
