@@ -13,6 +13,7 @@ use bootloader::{BootInfo, entry_point};
 use blog_os::task::keyboard;
 use blog_os::task::{Task, simple_executor::SimpleExecutor};
 extern crate alloc;
+use blog_os::task::executor::Executor;
 use alloc::{boxed::Box, vec, vec::Vec, rc::Rc};
 pub trait Testable {
     fn run(&self) -> ();
@@ -107,7 +108,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     #[cfg(test)]
     test_main();
 
-    let mut executor = SimpleExecutor::new();
+    let mut executor = Executor::new();
     executor.spawn(Task::new(example_task()));
     executor.spawn(Task::new(keyboard::print_keypresses()));
     executor.run();
